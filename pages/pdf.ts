@@ -5,6 +5,7 @@ import dotProp from 'dot-prop';
 import request from 'request';
 import { Struct } from '@dashup/module';
 import { Storage } from '@google-cloud/storage';
+import { fromPath } from 'pdf2pic';
 import { PDFImage } from 'pdf-image';
 import { v4 as uuid } from 'uuid';
 
@@ -108,13 +109,18 @@ export default class PdfPage extends Struct {
       // await download
       const file = await this.__download(dotProp.get(page, 'data.pdf.url'), temp);
 
-      // convert
-      const pdfImage = new PDFImage(file, {
-        '-quality' : '100',
+      // create images
+      const fn = fromPath(file, {
+        width    : 595,
+        height   : 842,
+        format   : 'png',
+        density  : 800,
+        quality  : 100,
+        savePath : `${this.dashup.cache}/pdfs`,
       });
 
-      // convert file
-      const images = await pdfImage.convertFile();
+      // images
+      const images = await fn.bulk(-1);
 
       // remove file
       await fs.remove(file);
@@ -127,10 +133,16 @@ export default class PdfPage extends Struct {
         // Create upload
         return this.store
           .bucket(this.dashup.config.bucket)
-          .upload(image, {
+          .upload(image.path, {
             gzip        : true,
             destination : `pdf/${page._id}/${temp}.${i}.png`,
           });
+      }));
+
+      // rmeove all images
+      await Promise.all(images.map((image) => {
+        // remove image
+        return fs.remove(image.path);
       }));
       
       // set
