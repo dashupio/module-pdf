@@ -1,0 +1,160 @@
+<page-pdf-view>
+  <div class="d-flex flex-column flex-1">
+    <a href="#!" class="d-block alert alert-info mb-3" if={ !props.page.get('data.model') } onclick={ (e) => props.onConfig(e) }>
+      <i class="fa fa-exclamation-triangle mr-2" />
+      Please select a <b>model</b> for the pdf.
+    </a>
+    <a href="#!" class="d-block alert alert-info mb-3" if={ !props.page.get('data.forms.0') } onclick={ (e) => props.onConfig(e) }>
+      <i class="fa fa-exclamation-triangle mr-2" />
+      Please select a <b>form</b> for the pdf.
+    </a>
+    
+    ASDF
+  </div>
+
+  <script>
+    // require base class
+    import uuid from 'uuid';
+    import dotProp from 'dot-prop';
+    import PerfectScrollbar from 'perfect-scrollbar';
+
+    // export default
+    export default class PagePdfView {
+
+
+      // ////////////////////////////////////////////////////////////////////////////
+      //
+      // RIOT METHODS
+      //
+      // ////////////////////////////////////////////////////////////////////////////
+
+      /**
+       * on before mount
+       */
+      onBeforeMount(...args) {
+        // bind
+        this.init = this.init.bind(this);
+
+        // set force update
+        this.scheduleUpdate = () => {
+          // update
+          this.update();
+        };
+      }
+
+      /**
+       * on mounted
+       *
+       * @param {Array} args
+       */
+      onMounted(...args) {
+        // check frontend
+        if (typeof window === 'undefined') return;
+
+        // init
+        this.init();
+
+        // where
+        this.props.page.on('data.model', this.init);
+      }
+
+      /**
+       * on mounted
+       *
+       * @param {Array} args
+       */
+      onBeforeUnmount(...args) {
+        // where
+        this.props.page.removeListener('data.model', this.init);
+      }
+
+      /**
+       * on updated
+       */
+      onUpdated(...args) {
+        // check frontend
+        if (typeof window === 'undefined') return;
+        
+      }
+
+      /**
+       * should update
+       */
+      shouldUpdate() {
+        // check updating
+        return !this.__canUpdate;
+      }
+
+
+      // ////////////////////////////////////////////////////////////////////////////
+      //
+      // EVENT METHODS
+      //
+      // ////////////////////////////////////////////////////////////////////////////
+
+      /**
+       * get props
+       */
+      getProps() {
+        // clone
+        const newProps = { ...(this.props) };
+
+        // delete
+        delete newProps.ref;
+        delete newProps.type;
+        delete newProps.item;
+        delete newProps.view;
+        delete newProps.class;
+        delete newProps.struct;
+        delete newProps.onItem;
+
+        // return
+        return newProps;
+      }
+
+
+      // ////////////////////////////////////////////////////////////////////////////
+      //
+      // Init Methods
+      //
+      // ////////////////////////////////////////////////////////////////////////////
+
+      /**
+       * init
+       */
+      async init() {
+        
+      }
+
+      /**
+       * ref
+       */
+      ref(name) {
+        // set refs
+        if (!this.refs) this.refs = {};
+
+        // return ref function
+        return (that) => {
+          // set ref
+          this.refs[name] = that;
+        };
+      }
+
+      /**
+       * set loading
+       */
+      loading(type, way) {
+        // set loading
+        if (!this.__loading) this.__loading = new Map();
+
+        // check loading
+        if (!type) return !!Array.from(this.__loading.values()).find((v) => v);
+        if (typeof way === 'undefined') return !!this.__loading.get(type);
+
+        // set loading
+        this.__loading.set(type, way);
+        this.update();
+      }
+    }
+  </script>
+</page-pdf-view>
