@@ -1,11 +1,28 @@
 
 // import page interface
+import fs from 'fs-extra';
+import dotProp from 'dot-prop';
+import request from 'request';
 import { Struct } from '@dashup/module';
+import { Storage } from '@google-cloud/storage';
+import { PDFImage } from 'pdf-image';
+import { v4 as uuid } from 'uuid';
 
 /**
  * build address helper
  */
 export default class PdfPage extends Struct {
+
+  /**
+   * construct
+   */
+  constructor(...args) {
+    // return
+    super(...args);
+
+    // run listen
+    this.saveAction = this.saveAction.bind(this);
+  }
 
   /**
    * returns page type
@@ -45,8 +62,18 @@ export default class PdfPage extends Struct {
   get views() {
     // return object of views
     return {
-      view   : 'page/board/view',
-      config : 'page/board/config',
+      view   : 'page/pdf/view',
+      config : 'page/pdf/config',
+    };
+  }
+
+  /**
+   * returns object of views
+   */
+  get actions() {
+    // return object of views
+    return {
+      save : this.saveAction,
     };
   }
 
@@ -64,5 +91,113 @@ export default class PdfPage extends Struct {
   get description() {
     // return description string
     return 'PDF view page';
+  }
+
+  /**
+   * save acton
+   *
+   * @param opts 
+   * @param page 
+   */
+  async saveAction(opts, page) {
+    // check page
+    if (dotProp.get(page, 'data.pdf.url') && dotProp.get(page, 'data.pdf.url').includes('.pdf') && dotProp.get(page, 'data.image.pdf') !== dotProp.get(page, 'data.pdf.id')) {
+      // temp
+      const temp = uuid();
+
+      // await download
+      const file = await this.__download(dotProp.get(page, 'data.pdf.url'), temp);
+
+      // convert
+      const pdfImage = new PDFImage(file, {
+        '-quality' : '100',
+      });
+
+      // convert file
+      const images = await pdfImage.convertFile();
+
+      // remove file
+      await fs.remove(file);
+
+      // upload images
+      await this.__storage();
+
+      // upload
+      await Promise.all(images.map((image, i) => {
+        // Create upload
+        return this.store
+          .bucket(this.dashup.config.bucket)
+          .upload(image, {
+            gzip        : true,
+            destination : `pdf/${page._id}/${temp}.${i}.png`,
+          });
+      }));
+      
+      // set
+      page.data.image = {
+        pdf    : dotProp.get(page, 'data.pdf.id'),
+        images : images.map((img, i) => `https://${this.dashup.config.bucket}/pdf/${page._id}/${temp}.${i}.png`),
+      };
+    }    
+
+    // return page
+    return {
+      page,
+    };
+  }
+
+  /**
+   * download to temp url
+   *
+   * @param url 
+   * @param tmp 
+   */
+  async __download(url, tmp) {
+    // get cache url
+    const dir = `${this.dashup.cache}/pdfs`;
+    const pdf = `${dir}/${tmp}`;
+
+    // ensure dir
+    await fs.ensureDir(dir);
+
+    // Create request
+    const res  = request.get(url);
+    const dest = fs.createWriteStream(`${pdf}.pdf`);
+
+    // Res pipe dest
+    res.pipe(dest);
+
+    // Run Promise
+    await new Promise((resolve) => {
+      // Resolve on end
+      res.on('end', resolve);
+    });
+
+    // return dir
+    return `${pdf}.pdf`;
+  }
+
+  /**
+   * storage
+   */
+  async __storage() {
+    // Create store
+    this.store = this.store || new Storage({
+      credentials : this.dashup.config.google,
+    });
+
+    // Get bucket
+    this.bucket = this.bucket || new Promise(async (res) => {
+      try {
+        // Run try/catch
+        await this.store.createBucket(this.dashup.config.bucket);
+      } catch (e) { /* eh */ }
+
+      // Resolve
+      res();
+    });
+
+    // return bucket
+    return this.bucket;
   }
 }

@@ -9,7 +9,26 @@
       Please select a <b>form</b> for the pdf.
     </a>
     
-    ASDF
+    <div class="row">
+      <div class="col chat-column mb-4 mb-lg-0">
+        <div class="card">
+          <div class="card-body">
+            <div each={ (field, i) in props.context.fields } class="card bg-white mb-2">
+              <div class="card-body">
+                { field.label || field.name }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div each={ (image, i) in props.page.get('data.image.images') } class="vh-100 py-3 text-center">
+          <div class="h-100">
+            <img src={ image } class="h-100 bg-white rounded border border-secondary img-fluid" />
+          </div>
+        </div>  
+      </div>
+    </div>
   </div>
 
   <script>
@@ -40,6 +59,10 @@
           // update
           this.update();
         };
+        this.scheduleDelayedUpdate = () => {
+          // delay
+          setTimeout(() => this.update(), 1000);
+        };
       }
 
       /**
@@ -55,7 +78,13 @@
         this.init();
 
         // where
+        this.props.page.on('reload', this.scheduleUpdate);
+        this.props.page.on('data.pdf', this.scheduleDelayedUpdate);
         this.props.page.on('data.model', this.init);
+        this.props.page.on('data.image.images', this.scheduleUpdate);
+
+        // on scroll
+        $(document).on('scroll', this.onScroll);
       }
 
       /**
@@ -65,7 +94,35 @@
        */
       onBeforeUnmount(...args) {
         // where
+        this.props.page.removeListener('reload', this.scheduleUpdate);
+        this.props.page.removeListener('data.pdf', this.scheduleDelayedUpdate);
         this.props.page.removeListener('data.model', this.init);
+        this.props.page.removeListener('data.image.images', this.scheduleUpdate);
+
+        // on scroll
+        $(document).off('scroll', this.onScroll);
+      }
+
+      /**
+       * on scroll
+       */
+      onScroll(e) {
+        // get offset
+        const top = $('.chat-column').offset().top - 12;
+
+        // top
+        const actualTop = $('html').prop('scrollTop') || $('body').prop('scrollTop');
+
+        // set offset
+        const offsetTop = actualTop - top;
+
+        // top
+        if (offsetTop > 0) {
+          // top
+          $('.chat-column > .card').css('margin-top', offsetTop);
+        } else {
+          $('.chat-column > .card').removeAttr('style');
+        }
       }
 
       /**
@@ -157,4 +214,11 @@
       }
     }
   </script>
+
+  <style>
+    .image {
+      height   : 100%;
+      position : relative;
+    }
+  </style>
 </page-pdf-view>
