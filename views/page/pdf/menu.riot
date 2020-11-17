@@ -1,0 +1,5 @@
+<page-pdf-menu>
+  <a if={ props.current } class="ml-2 btn btn-primary" href={ `/app/${props.page.get('_id')}/${props.current.get('_id')}/render` } target="_blank">
+    <i class="fa fa-file-pdf mr-2" /> View PDF
+  </a>
+</page-pdf-menu>
