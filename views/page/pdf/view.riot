@@ -29,8 +29,8 @@
         </div>
       </div>
       <div class="col">
-        <div each={ (image, i) in props.page.get('data.image.images') } class="vh-100 py-3 text-center">
-          <div class="h-100 image">
+        <div each={ (page, i) in state.pages } class="py-3 d-flex">
+          <div style={ `width:${page.port.width}px;height:${page.port.height}px` } class="rounded pdf mx-auto bg-white border-secondary">
             <div each={ (field, i) in props.page.get(`data.fields.${i}`) } class="pdf-field rounded" id={ field.id } data-x={ field.left } data-y={ field.top } style={ `height:${field.height}%; width:${field.width}%; top:${field.top}%; left:${field.left}%;` }>
               <div class="floating">
                 <div class="btn-group"> 
@@ -47,7 +47,7 @@
                 <pdf-field if={ field.field !== 'custom' } item={ props.current || state.test } field={ field } get-field={ getField } fields={ props.context.fields } />
               </div>
             </div>
-            <img src={ image } class="h-100 bg-white rounded border border-secondary img-fluid" />
+            <canvas class="page-canvas" style={ `width:${page.port.width}px;height:${page.port.height}px` } />
           </div>
         </div>  
       </div>
@@ -126,10 +126,14 @@
 
   <script>
     // require base class
+    import * as pdfJs from 'pdfjs-dist';
     import dotProp from 'dot-prop';
     import interact from 'interactjs';
     import PerfectScrollbar from 'perfect-scrollbar';
     import { v4 as uuid } from 'uuid';
+
+    // set worker
+    pdfJs.GlobalWorkerOptions.workerSrc = '/public/assets/vendor/pdf.worker.js';
 
     // import field
     import pdfField from './field';
@@ -231,17 +235,6 @@
         } else {
           $('.chat-column > .card').removeAttr('style');
         }
-      }
-
-      /**
-       * on updated
-       */
-      onUpdated(...args) {
-        // check frontend
-        if (typeof window === 'undefined') return;
-        
-        // updated
-        this.init();
       }
 
       /**
@@ -419,17 +412,63 @@
           return parseFloat(((a / b) * 100).toFixed(2));
         };
 
+        // loading
+        const pdfUrl = this.props.page.get('data.pdf.url');
+
+        // check task
+        if (!this.task && pdfUrl) {
+          // loading pdf
+          this.loading('pdf', true);
+
+          // set task
+          this.task = pdfJs.getDocument(pdfUrl.replace('storage.googleapis.com/', ''));
+
+          // get pdf
+          const pdf = await this.task.promise;
+
+          // set pages
+          const pages = [];
+
+          // loop
+          for (let page = 0; page < pdf._pdfInfo.numPages; page++) {
+            // actual page
+            const actualPage = {
+              pdf  : await pdf.getPage(page + 1),
+            };
+            actualPage.port = actualPage.pdf.getViewport({
+              scale : 1.5,
+            });
+
+            // get pages
+            pages.push(actualPage);
+          }
+          
+          // update
+          this.update({
+            pdf,
+            pages,
+          });
+          
+          // loop pages
+          this.$$('.page-canvas').forEach((item, i) => {
+            // set values
+            item.width = pages[i].port.width;
+            item.height = pages[i].port.height;
+
+            // render
+            pages[i].pdf.render({
+              viewport      : pages[i].port,
+              canvasContext : item.getContext('2d'),
+            });
+          });
+          
+          // done
+          this.loading('pdf', false);
+        }
+
         // set test
         if (!this.state.test && this.props.page.get('data.forms.0')) this.update({
           test : await this.props.dashup.page(this.props.page.get('data.forms.0')).findOne(),
-        });
-
-        // set image
-        this.$$('.image').forEach((image) => {
-          // set width
-          $('> img', image).one('load', () => {
-            $(image).width($('> img', image).width());
-          });
         });
 
         // drag fields
@@ -490,12 +529,15 @@
                   actualClone.setAttribute('data-x', x);
                   actualClone.setAttribute('data-y', y);
                 },
-                end : (event) => {
+                end : async (event) => {
                   // expand
                   const { target, dx, dy } = event;
 
                   // get clone
                   let clone = target.getAttribute('clone');
+
+                  // remove
+                  target.removeAttribute('clone');
 
                   // set id
                   const actualClone = document.getElementById(clone);
@@ -510,7 +552,7 @@
                   let i = 0;
                   
                   // find page
-                  const page = this.$$('.image').find((page, newI) => {
+                  const page = this.$$('.pdf').find((page, newI) => {
                     // get rect
                     const rect = page.getBoundingClientRect();
 
@@ -564,7 +606,8 @@
                   });
 
                   // set to data
-                  this.props.data('fields', fields);
+                  await this.props.data('fields', fields);
+                  this.init();
                 }
               },
               inertia : true,
@@ -727,8 +770,7 @@
   </script>
 
   <style>
-    .image {
-      height   : 100%;
+    .pdf {
       margin   : auto;
       position : relative;
     }

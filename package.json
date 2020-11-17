@@ -23,6 +23,7 @@
     "interactjs": "^1.10.0",
     "pdf-image": "^2.0.0",
     "pdf2pic": "^2.1.2",
+    "pdfjs-dist": "^2.5.207",
     "perfect-scrollbar": "^1.5.0",
     "request": "^2.88.2",
     "uuid": "^8.3.0"

@@ -65,6 +65,7 @@ export default class PdfPage extends Struct {
     return {
       view   : 'page/pdf/view',
       config : 'page/pdf/config',
+      render : 'page/pdf/render',
     };
   }
 
