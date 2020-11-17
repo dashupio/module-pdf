@@ -197,6 +197,11 @@
 
         // on scroll
         $(document).on('scroll', this.onScroll);
+
+        // add scrollbar
+        if (this.$('.chat-column > .card') && !this.$('.chat-column > .card.ps')) {
+          new PerfectScrollbar(this.$('.chat-column > .card'));
+        }
       }
 
       /**
@@ -772,6 +777,11 @@
   <style>
     .pdf {
       margin   : auto;
+      position : relative;
+    }
+
+    .chat-column > .card {
+      height   : calc(100vh - 24px);
       position : relative;
     }
 
