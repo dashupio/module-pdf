@@ -13,9 +13,16 @@
       <div class="col chat-column mb-4 mb-lg-0">
         <div class="card">
           <div class="card-body">
-            <div each={ (field, i) in props.context.fields } class="card bg-white mb-2">
+            <div each={ (field, i) in props.context.fields } class="card drag-field bg-white mb-2" field={ field.uuid }>
               <div class="card-body">
                 { field.label || field.name }
+              </div>
+            </div>
+            <hr />
+            <div class="card drag-field bg-white" field="custom">
+              <div class="card-body">
+                <i class="fa fa-function mr-2" />
+                Custom
               </div>
             </div>
           </div>
@@ -23,19 +30,109 @@
       </div>
       <div class="col">
         <div each={ (image, i) in props.page.get('data.image.images') } class="vh-100 py-3 text-center">
-          <div class="h-100">
+          <div class="h-100 image">
+            <div each={ (field, i) in props.page.get(`data.fields.${i}`) } class="pdf-field rounded" id={ field.id } data-x={ field.left } data-y={ field.top } style={ `height:${field.height}%; width:${field.width}%; top:${field.top}%; left:${field.left}%;` }>
+              <div class="floating">
+                <div class="btn-group"> 
+                  <button if={ field.field === 'custom' } class="btn btn-sm btn-primary" onclick={ (e) => onUpdate(e, field) }>
+                    <i class="fa fa-pencil-alt" />
+                  </button>
+                  <button class="btn btn-sm btn-primary" onclick={ (e) => onRemove(e, field) }>
+                    <i class="fa fa-times" />
+                  </button>
+                </div>
+              </div>
+              <div class="pdf-field-inner">
+                <hbs if={ field.field === 'custom' } template={ field.view || '' } data={ props.current ? props.current.toJSON() : state.test ? state.test.toJSON() : {} } />
+                <pdf-field if={ field.field !== 'custom' } item={ props.current || state.test } field={ field } get-field={ getField } fields={ props.context.fields } />
+              </div>
+            </div>
             <img src={ image } class="h-100 bg-white rounded border border-secondary img-fluid" />
           </div>
         </div>  
+      </div>
+    </div>
+
+    <div if={ state.updating } class="modal fade" id="field-update">
+      <div class="modal-dialog">
+        <div class="modal-content">
+
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <h5 class="modal-title">
+              Updating <b>{ state.updating.title || getFormField(state.updating).label }</b>
+            </h5>
+            <button type="button" class="btn-close" data-dismiss="modal">&times;</button>
+          </div>
+
+          <!-- Modal body -->
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">
+                Field Display
+              </label>
+              <code-block ref={ ref('display') } mode="handlebars" content={ state.updating.view || '' } prevent-update={ true } on-change={ (e) => onFieldView(e) } />
+              <div class="alert alert-primary mt-2">
+                <hbs template={ state.updating.view || '' } data={ props.current ? props.current.toJSON() : state.test ? state.test.toJSON() : {} } />
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal footer -->
+          <div class="modal-footer">
+            <button type="button" class="btn btn-info mr-auto" data-dismiss="modal">
+              Close
+            </button>
+            <button type="button" class="btn btn-success" onclick={ (e) => onConfirmUpdate(e) }>
+              Save
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div if={ state.removing } class="modal fade" id="field-remove">
+      <div class="modal-dialog">
+        <div class="modal-content">
+
+          <!-- Modal Header -->
+          <div class="modal-header">
+            <h5 class="modal-title">
+              Removing <b>{ state.removing.title || getFormField(state.removing).label }</b>
+            </h5>
+            <button type="button" class="btn-close" data-dismiss="modal">&times;</button>
+          </div>
+
+          <!-- Modal body -->
+          <div class="modal-body">
+            Are you sure you want to remove this field?
+          </div>
+
+          <!-- Modal footer -->
+          <div class="modal-footer">
+            <button type="button" class="btn btn-info mr-auto" data-dismiss="modal">
+              Close
+            </button>
+            <button type="button" class="btn btn-danger" onclick={ (e) => onConfirmRemove(e) }>
+              Confirm
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
   </div>
 
   <script>
     // require base class
-    import uuid from 'uuid';
     import dotProp from 'dot-prop';
+    import interact from 'interactjs';
     import PerfectScrollbar from 'perfect-scrollbar';
+    import { v4 as uuid } from 'uuid';
+
+    // import field
+    import pdfField from './field';
 
     // export default
     export default class PagePdfView {
@@ -48,11 +145,22 @@
       // ////////////////////////////////////////////////////////////////////////////
 
       /**
+       * static get components
+       */
+      static get components() {
+        // return grid
+        return {
+          pdfField,
+        };
+      }
+
+      /**
        * on before mount
        */
       onBeforeMount(...args) {
         // bind
         this.init = this.init.bind(this);
+        this.getField = this.getField.bind(this);
 
         // set force update
         this.scheduleUpdate = () => {
@@ -132,6 +240,8 @@
         // check frontend
         if (typeof window === 'undefined') return;
         
+        // updated
+        this.init();
       }
 
       /**
@@ -169,6 +279,130 @@
         return newProps;
       }
 
+      /**
+       * get field
+       */
+      getField({ type }) {
+        // return field
+        return this.props.fields.find((f) => f.type === type);
+      }
+
+      /**
+       * get field
+       */
+      getFormField({ field }) {
+        // return field
+        return this.props.context.fields.find((f) => f.uuid === field);
+      }
+
+
+      // ////////////////////////////////////////////////////////////////////////////
+      //
+      // Event Methods
+      //
+      // ////////////////////////////////////////////////////////////////////////////
+
+      /**
+       * on update
+       */
+      onUpdate(e, field) {
+        // prevent
+        e.preventDefault();
+        e.stopPropagation();
+
+        // upate
+        this.update({
+          updating : field,
+        });
+        $(this.$('#field-update')).modal('show');
+      }
+
+      /**
+       * on field view
+       */
+      onFieldView(val) {
+        // set view val
+        this.state.updating.view = val;
+
+        // found
+        const fields = this.props.page.get('data.fields') || {};
+        let found = null;
+        
+        // get page
+        Object.keys(fields).forEach((i) => {
+          // find element
+          const find = fields[i].find((f) => f.id === this.state.updating.id);
+
+          // set find
+          if (find) found = find;
+        });
+
+        // set value
+        if (found) {
+          found.view = val;
+        }
+      }
+
+      /**
+       * on update
+       */
+      onConfirmUpdate(e) {
+        // prevent
+        e.preventDefault();
+        e.stopPropagation();
+
+        // data
+        $(this.$('#field-update')).modal('hide');
+        this.props.data('fields', this.props.page.get('data.fields') || {});
+
+        // upate
+        this.update({
+          updating : null,
+        });
+      }
+
+      /**
+       * on remove
+       */
+      onRemove(e, field) {
+        // prevent
+        e.preventDefault();
+        e.stopPropagation();
+
+        // upate
+        this.update({
+          removing : field,
+        });
+        $(this.$('#field-remove')).modal('show');
+      }
+
+      /**
+       * on remove
+       */
+      onConfirmRemove(e) {
+        // prevent
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // loop to find
+        $(this.$('#field-remove')).modal('hide');
+
+        // found
+        const fields = this.props.page.get('data.fields') || {};
+        
+        // get page
+        Object.keys(fields).forEach((i) => {
+          // find element
+          fields[i] = fields[i].filter((f) => f.id !== this.state.removing.id);
+        });
+
+        // remove
+        this.props.data('fields', fields);
+        this.update({
+          removing : null,
+        });
+      }
+
 
       // ////////////////////////////////////////////////////////////////////////////
       //
@@ -180,7 +414,284 @@
        * init
        */
       async init() {
-        
+        // to percent
+        const toPercent = (a, b) => {
+          return parseFloat(((a / b) * 100).toFixed(2));
+        };
+
+        // set test
+        if (!this.state.test && this.props.page.get('data.forms.0')) this.update({
+          test : await this.props.dashup.page(this.props.page.get('data.forms.0')).findOne(),
+        });
+
+        // set image
+        this.$$('.image').forEach((image) => {
+          // set width
+          $('> img', image).one('load', () => {
+            $(image).width($('> img', image).width());
+          });
+        });
+
+        // drag fields
+        this.$$('.drag-field').forEach((item) => {
+          // check interact
+          if (item.getAttribute('interact')) return;
+          item.setAttribute('interact', 'true');
+
+          // interact item
+          interact(item)
+            .draggable({
+              listeners : {
+                move : (event) => {
+                  // expand
+                  const { target, dx, dy } = event;
+
+                  // get clone
+                  let clone = target.getAttribute('clone');
+
+                  // clone node
+                  if (!clone) {
+                    // clone
+                    clone = uuid();
+                    
+                    // get rect
+                    const rect = target.getBoundingClientRect();
+
+                    // clone node
+                    const cloned = target.cloneNode();
+                    target.setAttribute('clone', clone);
+                    cloned.setAttribute('id', clone);
+                    cloned.setAttribute('class', 'pdf-field pdf-field-clone rounded');
+
+                    // top
+                    const scrollTop = $('html').prop('scrollTop') || $('body').prop('scrollTop');
+
+                    // top
+                    const newTop = rect.top + scrollTop;
+
+                    // set style
+                    cloned.setAttribute('style', `z-index: 100; background: rgba(0, 0, 0, 0.2); top:${newTop}px; left:${rect.left}px; width:${target.offsetWidth}px; height:${target.offsetHeight}px; position:absolute;`);
+
+                    // append to body
+                    document.body.appendChild(cloned);
+                  }
+
+                  // set id
+                  const actualClone = document.getElementById(clone);
+
+                  // set x/y
+                  const x = (parseFloat(actualClone.getAttribute('data-x')) || 0) + dx;
+                  const y = (parseFloat(actualClone.getAttribute('data-y')) || 0) + dy;
+
+                  // translate the element
+                  actualClone.style.transform = `translate(${x}px, ${y}px)`;
+
+                  // update the posiion attributes
+                  actualClone.setAttribute('data-x', x);
+                  actualClone.setAttribute('data-y', y);
+                },
+                end : (event) => {
+                  // expand
+                  const { target, dx, dy } = event;
+
+                  // get clone
+                  let clone = target.getAttribute('clone');
+
+                  // set id
+                  const actualClone = document.getElementById(clone);
+
+                  // get type
+                  const id = actualClone.getAttribute('field');
+
+                  // get position on page
+                  const cloneRect = actualClone.getBoundingClientRect();
+
+                  // i
+                  let i = 0;
+                  
+                  // find page
+                  const page = this.$$('.image').find((page, newI) => {
+                    // get rect
+                    const rect = page.getBoundingClientRect();
+
+                    // check in page
+                    if (cloneRect.y < rect.y && cloneRect.x < rect.x) return;
+                  
+                    // check height
+                    if ((cloneRect.y + cloneRect.height) > (rect.y + rect.height)) return;
+                  
+                    // check height
+                    if ((cloneRect.x + cloneRect.width) > (rect.x + rect.width)) return;
+
+                    // set i
+                    i = newI;
+
+                    // return true
+                    return true;
+                  });
+
+                  // check page
+                  if (!page) return $(actualClone).remove();
+
+                  // get actual placement
+                  const placement = page.getBoundingClientRect();
+
+                  // top/left
+                  const top = toPercent(cloneRect.y - placement.y, $(page).height());
+                  const left = toPercent(cloneRect.x - placement.x, $(page).width());
+                  const width = toPercent(cloneRect.width, $(page).width());
+                  const height = toPercent(cloneRect.height, $(page).height());
+
+                  // remove element
+                  $(actualClone).remove();
+
+                  // add to page
+                  const fields = this.props.page.get('data.fields') || {};
+                  
+                  // check page
+                  if (!fields[i]) fields[i] = [];
+
+                  // push
+                  fields[i].push({
+                    id    : uuid(),
+                    title : id === 'custom' ? 'Custom' : null,
+                    field : id,
+
+                    top,
+                    left,
+                    width,
+                    height,
+                  });
+
+                  // set to data
+                  this.props.data('fields', fields);
+                }
+              },
+              inertia : true,
+              autoScroll : true,
+              modifiers : [
+                
+              ],
+            });
+        });
+
+        // on end
+        const onEnd = ({ target }) => {
+          // add to page
+          const rect = target.getBoundingClientRect();
+          const pRect = $(target).parent()[0].getBoundingClientRect();
+          const fields = this.props.page.get('data.fields') || {};
+          let found = null;
+          
+          // get page
+          Object.keys(fields).forEach((i) => {
+            // find element
+            const find = fields[i].find((el) => el.id === target.getAttribute('id'));
+
+            // found
+            if (find) found = find;
+          });
+
+          // check found
+          if (!found) return;
+
+          // set values
+          found.top = toPercent(rect.y - pRect.y, $(target).parent().height());
+          found.left = toPercent(rect.x - pRect.x, $(target).parent().width());
+          found.width = toPercent(rect.width, $(target).parent().width());
+          found.height = toPercent(rect.height, $(target).parent().height());
+          
+          // set
+          this.props.data('fields', fields);
+        };
+
+        // placements
+        this.$$('.pdf-field').forEach((item) => {
+          // check interact
+          if (item.getAttribute('interact')) return;
+          item.setAttribute('interact', 'true');
+
+          // interact item
+          interact(item)
+            .resizable({
+              // resize from all edges and corners
+              edges : {
+                top : true,
+                left : true,
+                right : true,
+                bottom : true,
+              },
+
+              listeners : {
+                move : ({  target, rect, deltaRect }) => {
+                  // expand
+                  let x = (parseFloat(target.getAttribute('data-x')) || 0);
+                  let y = (parseFloat(target.getAttribute('data-y')) || 0);
+
+                  // update the element's style
+                  target.style.width = `${toPercent(rect.width, $(target).parent().width())}%`;
+                  target.style.height = `${toPercent(rect.height, $(target).parent().height())}%`;
+
+                  // translate when resizing from top or left edges
+                  x += toPercent(deltaRect.left, $(target).parent().width());
+                  y += toPercent(deltaRect.top, $(target).parent().height());
+
+                  // set style
+                  target.style.top = `${y}%`;
+                  target.style.left = `${x}%`;
+
+                  // set attributes
+                  target.setAttribute('data-x', x);
+                  target.setAttribute('data-y', y);
+                },
+                end : onEnd,
+              },
+              modifiers : [
+                // keep the edges inside the parent
+                interact.modifiers.restrictEdges({
+                  outer : 'parent',
+                }),
+
+                // minimum size
+                interact.modifiers.restrictSize({
+                  min : {
+                    width : 50,
+                    height : 25,
+                  },
+                }),
+              ],
+
+              inertia : true,
+            })
+            .draggable({
+              listeners : {
+                move : (event) => {
+                  // expand
+                  const { target, dx, dy } = event;
+
+                  // set x/y
+                  const x = (parseFloat(target.getAttribute('data-x')) || 0) + toPercent(dx, $(target).parent().width());
+                  const y = (parseFloat(target.getAttribute('data-y')) || 0) + toPercent(dy, $(target).parent().height());
+
+                  // translate the element
+                  target.style.top = `${y}%`;
+                  target.style.left = `${x}%`;
+
+                  // update the posiion attributes
+                  target.setAttribute('data-x', x);
+                  target.setAttribute('data-y', y);
+                },
+                end : onEnd,
+              },
+              inertia : true,
+              modifiers : [
+                interact.modifiers.restrictRect({
+                  endOnly : true,
+                  restriction : 'parent',
+                }),
+              ],
+            });
+          });
       }
 
       /**
@@ -218,7 +729,35 @@
   <style>
     .image {
       height   : 100%;
+      margin   : auto;
       position : relative;
+    }
+
+    .pdf-field {
+      top        : 0;
+      left       : 0;
+      z-index    : 100;
+      position   : absolute;
+      background : rgba(0, 0, 0, 0.2);
+    }
+
+    .pdf-field .pdf-field-inner {
+      width    : 100%;
+      height   : 100%;
+      overflow : hidden;
+    }
+
+    .pdf-field .floating {
+      right          : 0;
+      bottom         : calc(100%);
+      opacity        : 0;
+      position       : absolute;
+      transition     : all 0.2s ease;
+      padding-bottom : .5rem;
+    }
+
+    .pdf-field:hover .floating {
+      opacity : 1;
     }
   </style>
 </page-pdf-view>

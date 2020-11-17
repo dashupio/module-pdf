@@ -1,0 +1,99 @@
+<pdf-field>
+  <div class="pdf-field-content">
+    <div if={ props.field.type === 'id' } class="text-overflow">
+      { props.item.get('_id') }
+    </div>
+    <div if={ props.field.field !== 'custom' && props.field.type !== 'id' }>
+      <div if={ props.getField(field) } is={ props.getField(field).view ? `${props.getField(field).view}-field` : `field-${field.type}-view` } view="view" field={ field } value={ getValue() } { ...(getProps()) } />
+    </div>
+    <div if={ props.field.field === 'custom' }>
+      <hbs template={ props.field.view || '' } data={ props.item ? props.item.toJSON() : {} } />
+    </div>
+  </div>
+
+  <script>
+
+    // export default
+    export default class GridColumn {
+
+
+      // ////////////////////////////////////////////////////////////////////////////
+      //
+      // RIOT METHODS
+      //
+      // ////////////////////////////////////////////////////////////////////////////
+
+      /**
+       * on before mount
+       */
+      onBeforeMount(...args) {
+        // blocks
+        this.blocks = ['image', 'code', 'file', 'address', 'wysiwyg', 'textarea'];
+
+        // bind methods
+        this.getValue = this.getValue.bind(this);
+        this.getProps = this.getProps.bind(this);
+        this.getField = this.getField.bind(this);
+
+        // set field
+        this.field = this.getField();
+      }
+
+      /**
+       * on before mount
+       */
+      onBeforeUpdate(...args) {
+        // set field
+        this.field = this.getField();
+      }
+
+
+      // ////////////////////////////////////////////////////////////////////////////
+      //
+      // EVENT METHODS
+      //
+      // ////////////////////////////////////////////////////////////////////////////
+
+      /**
+      * get data
+      *
+      * @return {*}
+      */
+      getValue() {
+        // get field
+        const field = this.field;
+
+        // return object assign
+        return this.props.item ? this.props.item.get(field.name || field.uuid) : null;
+      }
+
+      /**
+       * get field
+       */
+      getField() {
+        // get field
+        const field = this.props.field;
+
+        // push find
+        return this.props.fields.find((f) => f.uuid === ((field.field || {}).uuid || field.field)) || field;
+      }
+
+      /**
+       * get props
+       */
+      getProps() {
+        // props
+        const props = { ...this.props };
+
+        // delete
+        delete props.view;
+        delete props.type;
+        delete props.class;
+        delete props.struct;
+
+        // props
+        return props;
+      }
+    }
+  </script>
+</pdf-field>
