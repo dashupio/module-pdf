@@ -13,16 +13,16 @@
       <div class="col chat-column mb-4 mb-lg-0">
         <div class="card">
           <div class="card-body">
-            <div each={ (field, i) in props.context.fields } class="card drag-field bg-white mb-2" field={ field.uuid }>
-              <div class="card-body">
-                { field.label || field.name }
-              </div>
-            </div>
-            <hr />
             <div class="card drag-field bg-white" field="custom">
               <div class="card-body">
                 <i class="fa fa-function mr-2" />
                 Custom
+              </div>
+            </div>
+            <hr />
+            <div each={ (field, i) in props.context.fields } class="card drag-field bg-white mb-2" field={ field.uuid }>
+              <div class="card-body">
+                { field.label || field.name }
               </div>
             </div>
           </div>
@@ -43,7 +43,7 @@
                 </div>
               </div>
               <div class="pdf-field-inner">
-                <hbs if={ field.field === 'custom' } template={ field.view || '' } data={ props.current ? props.current.toJSON() : state.test ? state.test.toJSON() : {} } />
+                <hbs if={ !loading(field.id) && field.field === 'custom' } template={ field.view || '' } data={ props.current ? props.current.toJSON() : state.test ? state.test.toJSON() : {} } />
                 <pdf-field if={ field.field !== 'custom' } item={ props.current || state.test } field={ field } get-field={ getField } fields={ props.context.fields } />
               </div>
             </div>
@@ -313,6 +313,12 @@
           updating : field,
         });
         $(this.$('#field-update')).modal('show');
+        $(this.$('#field-update')).one('hidden.bs.modal', () => {
+          // reset hunting
+          this.update({
+            updating : null,
+          });
+        });
       }
 
       /**
@@ -344,14 +350,22 @@
       /**
        * on update
        */
-      onConfirmUpdate(e) {
+      async onConfirmUpdate(e) {
         // prevent
         e.preventDefault();
         e.stopPropagation();
 
         // data
         $(this.$('#field-update')).modal('hide');
-        this.props.data('fields', this.props.page.get('data.fields') || {});
+
+        // loading
+        this.loading(this.state.updating.id, true);
+
+        // loading
+        await this.props.data('fields', this.props.page.get('data.fields') || {});
+
+        // loading
+        this.loading(this.state.updating.id, false);
 
         // upate
         this.update({
@@ -372,6 +386,12 @@
           removing : field,
         });
         $(this.$('#field-remove')).modal('show');
+        $(this.$('#field-remove')).one('hidden.bs.modal', () => {
+          // reset hunting
+          this.update({
+            removing : null,
+          });
+        });
       }
 
       /**
