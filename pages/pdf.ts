@@ -63,8 +63,7 @@ export default class PdfPage extends Struct {
   get views() {
     // return object of views
     return {
-      view   : 'page/pdf/view',
-      menu   : 'page/pdf/menu',
+      view   : 'page/pdf',
       config : 'page/pdf/config',
       render : 'page/pdf/render',
     };
