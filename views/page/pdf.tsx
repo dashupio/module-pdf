@@ -343,10 +343,10 @@ const PagePdf = (props = {}) => {
 
       <Page.Config show={ config } onHide={ (e) => setConfig(false) } />
 
-      <Page.Menu onConfig={ () => setConfig(true) } onShare>
+      <Page.Menu onConfig={ () => setConfig(true) } presence={ props.presence } onShare>
         { !updating && !!props.item && (
-          <a class="me-2 btn btn-primary" href={ `/app/${props.page.get('_id')}/${props.item.get('_id')}/render` } target="_blank">
-            <i class="fa fa-file-pdf me-2" /> View PDF
+          <a className="me-2 btn btn-primary" href={ `/app/${props.page.get('_id')}/${props.item.get('_id')}/render` } target="_blank">
+            <i className="fa fa-file-pdf me-2" /> View PDF
           </a>
         ) }
         
