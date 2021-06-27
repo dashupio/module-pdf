@@ -12,7 +12,7 @@ const PagePdfConfig = (props = {}) => {
     // get forms
     const models = Array.from(props.dashup.get('pages').values()).filter((page) => {
       // return model pages
-      return page.get('type') === 'model';
+      return page.get('type') === 'model' && !page.get('archived');
     });
 
     // return mapped
@@ -32,7 +32,7 @@ const PagePdfConfig = (props = {}) => {
     // get forms
     const forms = Array.from(props.dashup.get('pages').values()).filter((page) => {
       // return model pages
-      return page.get('type') === 'form' && page.get('data.model') === props.page.get('data.model');
+      return page.get('type') === 'form' && page.get('data.model') === props.page.get('data.model') && !page.get('archived');
     });
 
     // return mapped
@@ -98,8 +98,9 @@ const PagePdfConfig = (props = {}) => {
           struct="file"
 
           field={ {
-            uuid : shortid(),
-            label : 'PDF File',
+            uuid   : shortid(),
+            label  : 'PDF File',
+            accept : '.pdf',
           } }
           value={ props.page.get('data.pdf') }
           dashup={ props.dashup }
