@@ -14,6 +14,7 @@
     "@babel/plugin-transform-runtime": "^7.11.5",
     "@babel/plugin-transform-typescript": "^7.11.0",
     "@babel/preset-env": "^7.11.5",
+    "@dashup/core": "^1.2.1",
     "@dashup/eslint-config-dashup": "0.0.1",
     "@dashup/module": "^2.0.3",
     "@dashup/ui": "0.0.1",
@@ -21,7 +22,9 @@
     "@google-cloud/storage": "^5.4.0",
     "babel-plugin-add-module-exports": "^1.0.4",
     "dot-prop": "^5.3.0",
+    "i": "^0.3.6",
     "interactjs": "^1.10.0",
+    "npm": "^7.19.0",
     "pdf-image": "^2.0.0",
     "pdf2pic": "^2.1.2",
     "pdfjs-dist": "^2.5.207",
@@ -30,6 +33,7 @@
     "react-pdf": "^5.3.0",
     "react-resizable": "^3.0.4",
     "request": "^2.88.2",
+    "socket.io-client": "^4.1.2",
     "uuid": "^8.3.0"
   }
 }
