@@ -1,8 +1,8 @@
 
 import Measure from 'react-measure';
 import shortid from 'shortid';
+import SimpleBar from 'simplebar-react';
 import { Resizable } from 'react-resizable';
-import PerfectScrollbar from 'react-perfect-scrollbar';
 import { ReactSortable } from 'react-sortablejs';
 import { Page, Hbs, View } from '@dashup/ui';
 import { Modal, Button, Offcanvas } from 'react-bootstrap';
@@ -184,8 +184,6 @@ const PagePdf = (props = {}) => {
     // expand
     const { x, y } = event.originalEvent;
 
-    console.log(event);
-
     // rect
     const cloneRect = event.item.getBoundingClientRect();
 
@@ -366,7 +364,7 @@ const PagePdf = (props = {}) => {
       <Page.Body>
         <div className="flex-1 fit-content">
           <div className="h-100 w-100">
-            <PerfectScrollbar className="h-100 p-relative">
+            <SimpleBar className="h-100 p-relative">
               <div className="container-lg">
                 <Measure bounds onResize={ ({ bounds }) => setWidth(parseInt(bounds.width, 10)) }>
                   { ({ measureRef }) => {
@@ -460,7 +458,7 @@ const PagePdf = (props = {}) => {
                   } }
                 </Measure>
               </div>
-            </PerfectScrollbar>
+            </SimpleBar>
           </div>
         </div>
       </Page.Body>
@@ -479,7 +477,7 @@ const PagePdf = (props = {}) => {
             Drag one of these fields into the pdf where you need it.
           </div>
           <div className="flex-1 fit-content">
-            <PerfectScrollbar className="p-3">
+            <SimpleBar className="p-3">
               <ReactSortable
                 clone
                 list={ props.getFields() }
@@ -516,7 +514,7 @@ const PagePdf = (props = {}) => {
                   }) }
                 </>
               </ReactSortable>
-            </PerfectScrollbar>
+            </SimpleBar>
           </div>
         </div>
       </Offcanvas>

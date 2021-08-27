@@ -38,7 +38,7 @@ export default class PdfPage extends Struct {
    */
   get icon() {
     // return page type label
-    return 'fa fa-file-pdf';
+    return 'fad fa-file-pdf text-info';
   }
 
   /**
@@ -46,7 +46,7 @@ export default class PdfPage extends Struct {
    */
   get title() {
     // return page type label
-    return 'PDF Page';
+    return 'PDF';
   }
 
   /**
@@ -84,7 +84,7 @@ export default class PdfPage extends Struct {
    */
   get categories() {
     // return array of categories
-    return ['View'];
+    return ['Misc'];
   }
 
   /**
@@ -92,7 +92,7 @@ export default class PdfPage extends Struct {
    */
   get description() {
     // return description string
-    return 'PDF view page';
+    return 'Upload and edit PDF files';
   }
 
   /**

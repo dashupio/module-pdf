@@ -2,7 +2,7 @@
 import Measure from 'react-measure';
 import { Hbs, View } from '@dashup/ui';
 import { Document, Page as DocumentPage, pdfjs } from 'react-pdf';
-import React, { useState, } from 'react';
+import React, { useState } from 'react';
 
 // scss
 import '../pdf.scss';
@@ -81,7 +81,7 @@ const PagePdfRender = (props = {}) => {
       { ({ measureRef }) => {
         // return jsx
         return (
-          <div ref={ measureRef }>
+          <div>
             { !!props.page.get('data.pdf.url') && (
               <Document
                 file={ props.page.get('data.pdf.url').replace('storage.googleapis.com/', '') }
@@ -102,8 +102,10 @@ const PagePdfRender = (props = {}) => {
                 { pages.map((page, i) => {
                   // return jsx
                   return (
-                    <div className="mb-3 rounded pdf" key={ `page-${page}` } data-page={ i }>
-                      <DocumentPage className="rounded" width={ width } pageNumber={ page } />
+                    <div className="mx-auto pdf" key={ `page-${page}` } style={ {
+                      width : `${width}px`,
+                    } } data-page={ i }>
+                      <DocumentPage height={ typeof window !== 'undefined' ? window.innerHeight : 100 } canvasRef={ i === 0 ? measureRef : null } className="mx-auto" pageNumber={ page } />
                       { getFields(i).map((field, a) => {
                         // create child
                         return (
