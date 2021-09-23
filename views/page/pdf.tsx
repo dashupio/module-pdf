@@ -4,10 +4,9 @@ import shortid from 'shortid';
 import SimpleBar from 'simplebar-react';
 import { Resizable } from 'react-resizable';
 import { ReactSortable } from 'react-sortablejs';
-import { Page, Hbs, View } from '@dashup/ui';
-import { Modal, Button, Offcanvas } from 'react-bootstrap';
-import { Document, Page as DocumentPage, pdfjs } from 'react-pdf';
 import React, { useState, useEffect } from 'react';
+import { Document, Page as DocumentPage, pdfjs } from 'react-pdf';
+import { Page, Hbs, View, Modal, Button, Offcanvas } from '@dashup/ui';
 
 // scss
 import './pdf.scss';
